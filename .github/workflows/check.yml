@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: Apache-2.0
+name: check
+on:
+  pull_request:
+  merge_group:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report event
+        env:
+          EVENT_REF: ${{ github.ref }}
+          MG_HEAD_REF: ${{ github.event.merge_group.head_ref }}
+          MG_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MG_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+        run: |
+          echo "event=$GITHUB_EVENT_NAME ref=$EVENT_REF sha=$GITHUB_SHA"
+          echo "merge_group head_ref=$MG_HEAD_REF base_sha=$MG_BASE_SHA head_sha=$MG_HEAD_SHA"
