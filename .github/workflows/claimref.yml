@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: Apache-2.0
+# ADR 0094 probe 2: GITHUB_TOKEN writes claim/* refs.
+name: claimref
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  claimref:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      R: repos/${{ github.repository }}
+      REF: claim/probe-${{ github.run_id }}
+      EMPTY: 4b825dc642cb6eb9a060e54bf8d69288fbee4904
+    steps:
+      - name: Probe
+        run: |
+          call() { # label, then gh api args; prints the HTTP status line
+            local label=$1; shift
+            out=$(gh api -i "$@" 2>&1 || true)
+            echo "PROBE $label: $(printf '%s\n' "$out" | head -1)"
+            printf '%s\n' "$out" | tail -1 > last.json
+          }
+          c1=$(gh api -X POST "$R/git/commits" -f message="claim 1" -f tree="$EMPTY" --jq .sha)
+          call create -X POST "$R/git/refs" -f ref="refs/heads/$REF" -f sha="$c1"
+          c2=$(gh api -X POST "$R/git/commits" -f message="claim 2" -f tree="$EMPTY" -f "parents[]=$c1" --jq .sha)
+          call fast-forward -X PATCH "$R/git/refs/heads/$REF" -f sha="$c2" -F force=false
+          c3=$(gh api -X POST "$R/git/commits" -f message="unrelated" -f tree="$EMPTY" --jq .sha)
+          call non-ff-force-false -X PATCH "$R/git/refs/heads/$REF" -f sha="$c3" -F force=false
+          cat last.json; echo
+          call non-ff-force-true -X PATCH "$R/git/refs/heads/$REF" -f sha="$c3" -F force=true
+          cat last.json; echo
+          echo "PROBE final ref: $(gh api "$R/git/refs/heads/$REF" --jq .object.sha) (c2=$c2 c3=$c3)"
