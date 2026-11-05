@@ -1,0 +1,15 @@
+# SPDX-License-Identifier: Apache-2.0
+# ADR 0094 probe 4: a red run whose failed job is re-run by GITHUB_TOKEN.
+name: claimfail
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  claim:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail on the first attempt only
+        run: |
+          echo "attempt=$GITHUB_RUN_ATTEMPT"
+          test "$GITHUB_RUN_ATTEMPT" -gt 1
