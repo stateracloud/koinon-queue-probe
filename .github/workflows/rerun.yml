@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: Apache-2.0
+# ADR 0094 probe 4: POST actions/runs/{id}/rerun-failed-jobs with GITHUB_TOKEN.
+name: rerun
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: run to re-run
+        required: true
+permissions:
+  actions: write
+jobs:
+  rerun:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUN_ID: ${{ inputs.run_id }}
+      R: repos/${{ github.repository }}
+    steps:
+      - name: Re-run failed jobs
+        run: |
+          out=$(gh api -i -X POST "$R/actions/runs/$RUN_ID/rerun-failed-jobs" 2>&1 || true)
+          echo "PROBE rerun-failed-jobs: $(printf '%s\n' "$out" | head -1)"
+          printf '%s\n' "$out" | tail -1
